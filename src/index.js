@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const twilio = require('twilio');
+// const twilio = require('twilio'); // Commented out
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -8,7 +8,7 @@ const port = process.env.PORT || 8080;
 // Middleware to parse incoming requests with urlencoded payloads
 app.use(express.urlencoded({ extended: false }));
 
-// Twilio WhatsApp Webhook Endpoint
+/* // Commented out Twilio Webhook Endpoint
 app.post('/whatsapp', (req, res) => {
     console.log('Received POST request on /whatsapp');
     try {
@@ -30,6 +30,7 @@ app.post('/whatsapp', (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+*/
 
 // Basic root route for testing
 app.get('/', (req, res) => {
