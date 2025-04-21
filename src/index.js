@@ -1,33 +1,61 @@
 require('dotenv').config(); // Re-enabled
 const express = require('express');
 const twilio = require('twilio'); // Re-enabled
+const Anthropic = require('@anthropic-ai/sdk'); // Added
 
 const app = express();
 const port = process.env.PORT || 8080;
+
+// Added: Initialize Anthropic Client
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 // Middleware to parse incoming requests with urlencoded payloads
 app.use(express.urlencoded({ extended: false }));
 
 // Re-enabled Twilio Webhook Endpoint
-app.post('/whatsapp', (req, res) => {
+// Modified to be async to await Anthropic response
+app.post('/whatsapp', async (req, res) => { // Made async
     console.log('Received POST request on /whatsapp');
+    const twiml = new twilio.twiml.MessagingResponse(); // Moved up
     try {
-        const twiml = new twilio.twiml.MessagingResponse();
         const incomingMsg = req.body.Body.toLowerCase().trim();
         const fromNumber = req.body.From; // WhatsApp number like 'whatsapp:+14155238886'
 
         console.log(`Received message from ${fromNumber}: ${incomingMsg}`);
 
-        // --- Add your chatbot logic here ---
-        // Example: Simple echo response
-        twiml.message(`You said: ${incomingMsg}`);
+        // --- Call Anthropic API ---
+        const claudeResponse = await anthropic.messages.create({
+            model: "claude-3-opus-20240229", // Or choose another model
+            max_tokens: 1024,
+            messages: [{ role: "user", content: incomingMsg }],
+        });
+
+        console.log('Anthropic API Response:', claudeResponse);
+
+        // Extract the text content from the response
+        const replyText = claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text
+            ? claudeResponse.content[0].text
+            : "Sorry, I couldn't process that."; // Fallback message
+
+        twiml.message(replyText);
         // -----------------------------------
 
         res.writeHead(200, { 'Content-Type': 'text/xml' });
         res.end(twiml.toString());
     } catch (error) {
         console.error('Error in /whatsapp handler:', error);
-        res.status(500).send('Internal Server Error');
+        // Send an error message back via Twilio if possible
+        if (error instanceof Anthropic.APIError) {
+            console.error('Anthropic API Error:', error.status, error.name, error.headers);
+            twiml.message(`Sorry, there was an issue contacting the AI assistant (${error.status}).`);
+        } else {
+            twiml.message('An internal error occurred.');
+        }
+        // Still attempt to send the TwiML response even if there's an error
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end(twiml.toString());
     }
 });
 
