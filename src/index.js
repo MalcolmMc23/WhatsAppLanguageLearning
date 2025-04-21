@@ -36,8 +36,13 @@ app.get('/', (req, res) => {
     res.send('WhatsApp Chatbot is running!');
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
+});
+
+server.on('error', (error) => {
+    console.error('Server error:', error);
+    process.exit(1);
 });
 
 // Basic Error Handling Middleware
