@@ -1,4 +1,4 @@
-require('dotenv').config();
+// require('dotenv').config(); // Commented out
 const express = require('express');
 // const twilio = require('twilio'); // Commented out
 
