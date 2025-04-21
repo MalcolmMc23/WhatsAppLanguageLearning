@@ -1,4 +1,13 @@
 require('dotenv').config(); // Re-enabled
+
+// Added: Check if API key is loaded
+if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('ERROR: ANTHROPIC_API_KEY environment variable not found!');
+    console.log('Ensure you have a .env file in the project root with ANTHROPIC_API_KEY=your_key');
+} else {
+    console.log('Anthropic API Key loaded successfully (first few chars):', process.env.ANTHROPIC_API_KEY.substring(0, 5) + '...'); // Log only a few chars for security
+}
+
 const express = require('express');
 const twilio = require('twilio'); // Re-enabled
 const Anthropic = require('@anthropic-ai/sdk'); // Added
