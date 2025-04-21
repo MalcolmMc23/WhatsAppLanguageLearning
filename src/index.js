@@ -15,6 +15,9 @@ const Anthropic = require('@anthropic-ai/sdk'); // Added
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Added: In-memory store for chat histories
+const chatHistories = {}; // Key: fromNumber, Value: Array of Anthropic message objects
+
 // Added: Initialize Anthropic Client
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -34,11 +37,25 @@ app.post('/whatsapp', async (req, res) => { // Made async
 
         console.log(`Received message from ${fromNumber}: ${incomingMsg}`);
 
-        // --- Call Anthropic API ---
+        // --- Manage Chat History ---
+        // Retrieve history or initialize if new user
+        let userHistory = chatHistories[fromNumber] || [];
+
+        // Add current user message to history
+        userHistory.push({ role: "user", content: incomingMsg });
+
+        // Optional: Limit history length to prevent overly long conversations (e.g., last 10 messages)
+        const maxHistoryLength = 10; // Keep user + assistant messages
+        if (userHistory.length > maxHistoryLength) {
+            // Keep the last maxHistoryLength messages
+            userHistory = userHistory.slice(-maxHistoryLength);
+        }
+
+        // --- Call Anthropic API with History ---
         const claudeResponse = await anthropic.messages.create({
-            model: "claude-3-opus-20240229", // Or choose another model
+            model: "claude-3-opus-20240229",
             max_tokens: 1024,
-            messages: [{ role: "user", content: incomingMsg }],
+            messages: userHistory, // Pass the entire history
         });
 
         console.log('Anthropic API Response:', claudeResponse);
@@ -47,6 +64,11 @@ app.post('/whatsapp', async (req, res) => { // Made async
         const replyText = claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text
             ? claudeResponse.content[0].text
             : "Sorry, I couldn't process that."; // Fallback message
+
+        // --- Update History with Assistant Response ---
+        userHistory.push({ role: "assistant", content: replyText });
+        chatHistories[fromNumber] = userHistory; // Store updated history
+        // -------------------------------------------
 
         twiml.message(replyText);
         // -----------------------------------
