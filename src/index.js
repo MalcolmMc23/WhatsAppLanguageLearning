@@ -10,19 +10,25 @@ app.use(express.urlencoded({ extended: false }));
 
 // Twilio WhatsApp Webhook Endpoint
 app.post('/whatsapp', (req, res) => {
-    const twiml = new twilio.twiml.MessagingResponse();
-    const incomingMsg = req.body.Body.toLowerCase().trim();
-    const fromNumber = req.body.From; // WhatsApp number like 'whatsapp:+14155238886'
+    console.log('Received POST request on /whatsapp');
+    try {
+        const twiml = new twilio.twiml.MessagingResponse();
+        const incomingMsg = req.body.Body.toLowerCase().trim();
+        const fromNumber = req.body.From; // WhatsApp number like 'whatsapp:+14155238886'
 
-    console.log(`Received message from ${fromNumber}: ${incomingMsg}`);
+        console.log(`Received message from ${fromNumber}: ${incomingMsg}`);
 
-    // --- Add your chatbot logic here ---
-    // Example: Simple echo response
-    twiml.message(`You said: ${incomingMsg}`);
-    // -----------------------------------
+        // --- Add your chatbot logic here ---
+        // Example: Simple echo response
+        twiml.message(`You said: ${incomingMsg}`);
+        // -----------------------------------
 
-    res.writeHead(200, { 'Content-Type': 'text/xml' });
-    res.end(twiml.toString());
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end(twiml.toString());
+    } catch (error) {
+        console.error('Error in /whatsapp handler:', error);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 // Basic root route for testing
@@ -32,4 +38,10 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
+});
+
+// Basic Error Handling Middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).send('Something broke!');
 }); 
